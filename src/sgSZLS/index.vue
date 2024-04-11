@@ -259,6 +259,12 @@ export default defineComponent({
       crkqkrkNumber:0,
       crkqkckItemNumber:0,
       crkqkrkItemNumber:0,
+      // 记录仓房初始位置值
+      cfStartLocation:<any>[],
+      cfEndLocation:<any>[],
+      cfStaging:<any>[],
+      // 记录旋转动画
+      cfRotation:<any>[],
     });
 
     /**
@@ -290,6 +296,7 @@ export default defineComponent({
     let engine:any = null;
     var bubble:any = null;
     let isDragging = false;
+    let gunshot = null;
     function init() {
       // 创建场景承接元素
       let canvasFor:any = document.getElementById('canvasFor');
@@ -302,11 +309,26 @@ export default defineComponent({
       // 创建场景
       scene = new BABYLON.Scene(engine);
 
+
       // 相机
       camera = new BABYLON.ArcRotateCamera("camera", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), scene);
       camera.setPosition(new BABYLON.Vector3(0, 200, 370));
       camera.attachControl(canvas, true);
-      camera.speed = 0.3;
+      // 允许相机绕 X 轴的最大旋转角度（弧度）
+      camera.upperBetaLimit = Math.PI/2 - 0.2;
+      // 相机距离物体的最小距离
+      camera.lowerRadiusLimit = 150;
+      camera.upperRadiusLimit = 700;
+      // camera.panningInertia = 0.9; // 平移的惯性速度
+      camera.panningSensibility = 290; // 控制平移灵敏度，可以根据需要调整
+      // 相机旋转速度
+      camera.angularSensibilityX = 9000; // 设置 X 轴的旋转敏感度
+      camera.angularSensibilityY = 9000;
+      camera.speed = 1;
+      // 启用自动旋转行为
+      camera.useAutoRotationBehavior = true;
+      // 设置自动旋转的方向（顺时针为正，逆时针为负）
+      // camera.autoRotationBehavior.idleRotationOffset = Math.PI / 2; // 设置逆时针旋转
 
       // 灯光
       const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
@@ -454,7 +476,6 @@ export default defineComponent({
       },(error)=>{
       });
 
-
       var highlightLayer = new BABYLON.HighlightLayer("highlightLayer", scene);
       var highlightedMesh:any;
 
@@ -484,7 +505,6 @@ export default defineComponent({
           if(!isDragging){
               if (evt.button === 0) {
                 if (pickResult.pickedMesh?.name !== 'ground' && pickResult.pickedMesh?.name !== 'skyBox' && (pickResult.pickedMesh?.name.substring(0, 1) == '仓' || pickResult.pickedMesh?.name.substring(0, 5) == 'plane')) {
-                  console.log(scene,pickResult)
                   changePostion(pickResult)
                   let cangNumber = null;
                   if(pickResult.pickedMesh?.name.substring(0, 1) == '仓'){
@@ -500,9 +520,48 @@ export default defineComponent({
                         Data.winOpenClose = true;
                         for (let i = 0; i < scene.meshes.length; i++) {
                           if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
+                            // console.log(scene.meshes[i].name.split('_')[0])
                             scene.meshes[i].isVisible = false;
                           }
                         }
+
+                        /**
+                         * 单个仓房旋转
+                         */
+                        Data.cfRotation = [];
+                        const duration = 1800; // 动画持续时间（秒）
+                        const speed = 0.2; // 每秒旋转速度（弧度）
+
+                        // 创建旋转动画
+                        const animations1 = new BABYLON.Animation(
+                            "RotateY", // 动画名称
+                            "rotation.y", // 目标属性路径
+                            30, // FPS 或关键帧速率
+                            BABYLON.Animation.ANIMATIONTYPE_FLOAT, // 属性类型
+                            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE // 循环模式（无限循环）
+                        );
+
+                        // 添加关键帧
+                        animations1.setKeys([
+                          { frame: 0, value: 0 }, // 起始角度
+                          { frame: duration * animations1.framePerSecond, value: speed * duration } // 结束角度
+                        ]);
+
+                        const cfCollection0 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'0');
+                        const cfCollection1 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'1');
+                        const cfCollection2 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'2');
+
+                        cfCollection0.animations = [];
+                        cfCollection1.animations = [];
+                        cfCollection2.animations = [];
+                        cfCollection0.animations.push(animations1);
+                        cfCollection1.animations.push(animations1);
+                        cfCollection2.animations.push(animations1);
+                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))
+                        // Data.cfRotation[0] =  scene.beginAnimation(cfCollection0,0,duration*30,true);
+                        // Data.cfRotation[1] =  scene.beginAnimation(cfCollection1,0,duration*30,true);
+                        // Data.cfRotation[2] =  scene.beginAnimation(cfCollection2,0,duration*30,true);
+
                       });
                       setTimeout(()=>{
                         Data.electronicStorageCard = handleItem.electronicStorageCard;
@@ -542,6 +601,19 @@ export default defineComponent({
         }
       })
 
+
+      /**
+       * 加载声音
+       */
+      gunshot = new BABYLON.Sound("火花", "/public/sounds/火花.wav", scene);
+
+      // 背景音乐
+      const bgmusic = new BABYLON.Sound("火花", "/public/sounds/背景音乐.wav", scene, null, {
+        loop: true,
+        autoplay: true,
+        volume:1,
+      });
+
       engine.runRenderLoop(() => {
         scene.render();
       });
@@ -552,17 +624,26 @@ export default defineComponent({
       });
     }
 
+
     /**
      * 拉近仓房动画
      */
     function changePostion(pickResult: any) {
       if (pickResult.hit) {
+        // 启用自动旋转行为
+        camera.useAutoRotationBehavior = false;
         // 切换相机位置和目标点到斜上方
+        // var targetPosition = new BABYLON.Vector3(
+        //     pickResult.pickedMesh._absolutePosition.x,
+        //     pickResult.pickedMesh._absolutePosition.y + 100,
+        //     pickResult.pickedMesh._absolutePosition.z + 100
+        // );
         var targetPosition = new BABYLON.Vector3(
             pickResult.pickedMesh._absolutePosition.x,
-            pickResult.pickedMesh._absolutePosition.y + 100,
-            pickResult.pickedMesh._absolutePosition.z + 100
+            pickResult.pickedMesh._absolutePosition.y + 200,
+            pickResult.pickedMesh._absolutePosition.z + 200,
         );
+
         var target = pickResult.pickedMesh._absolutePosition.clone();
 
         // 创建动画来平滑地移动相机位置和目标点
@@ -597,6 +678,90 @@ export default defineComponent({
         animationPosition.setEasingFunction(new BABYLON.CubicEase());
         animationTarget.setEasingFunction(new BABYLON.CubicEase());
 
+
+        // 仓房结束位置
+        Data.cfStartLocation = [];
+        Data.cfEndLocation = [];
+        Data.cfStaging = [];
+        const cfCollection0 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'0');
+        const cfCollection1 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'1');
+        const cfCollection2 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'2');
+        // Data.cfStartLocation = pickResult.pickedMesh._position;// 暂存仓房初始位置
+        for (let i = 0; i <= 2; i++) {
+          console.log(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i)._position)
+          Data.cfStartLocation.push(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i)._position)
+        }
+        var targetPosition0 = new BABYLON.Vector3(
+            cfCollection0._position.x - 2,
+            cfCollection0._position.y + 10,
+            cfCollection0._position.z,
+        );
+        var targetPosition1 = new BABYLON.Vector3(
+            cfCollection1._position.x - 2,
+            cfCollection1._position.y + 10,
+            cfCollection1._position.z,
+        );
+        var targetPosition2 = new BABYLON.Vector3(
+            cfCollection2._position.x - 2,
+            cfCollection2._position.y + 10,
+            cfCollection2._position.z,
+        );
+        Data.cfEndLocation.push(targetPosition0,targetPosition1,targetPosition2);
+        // 暂存一下仓房
+        // Data.cfStaging = pickResult.pickedMesh;
+        for (let i = 0; i <= 2; i++) {
+          Data.cfStaging.push(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i))
+        }
+        // 仓房位置
+        var animationPosition0 = new BABYLON.Animation(
+            "animationPosition0",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var animationPosition1 = new BABYLON.Animation(
+            "animationPosition1",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var animationPosition2 = new BABYLON.Animation(
+            "animationPosition2",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var keysPosition0 = [
+          {frame: 0, value: pickResult.pickedMesh.position.clone()},
+          {frame: 50, value: targetPosition0}
+        ];
+        var keysPosition1 = [
+          {frame: 0, value: pickResult.pickedMesh.position.clone()},
+          {frame: 50, value: targetPosition1}
+        ];
+        var keysPosition2 = [
+          {frame: 0, value: pickResult.pickedMesh.position.clone()},
+          {frame: 50, value: targetPosition2}
+        ];
+        animationPosition0.setKeys(keysPosition0);
+        animationPosition1.setKeys(keysPosition1);
+        animationPosition2.setKeys(keysPosition2);
+        animationPosition0.setEasingFunction(new BABYLON.CubicEase());
+        animationPosition1.setEasingFunction(new BABYLON.CubicEase());
+        animationPosition2.setEasingFunction(new BABYLON.CubicEase());
+        cfCollection0.animations = [];  // 清空之前的动画
+        cfCollection1.animations = [];  // 清空之前的动画
+        cfCollection2.animations = [];  // 清空之前的动画
+        cfCollection0.animations.push(animationPosition0);
+        cfCollection1.animations.push(animationPosition1);
+        cfCollection2.animations.push(animationPosition2);
+        scene.beginAnimation(cfCollection0, 0, 50, false);
+        scene.beginAnimation(cfCollection1, 0, 50, false);
+        scene.beginAnimation(cfCollection2, 0, 50, false);
+
         camera.animations = [];  // 清空之前的动画
         camera.animations.push(animationPosition);
         camera.animations.push(animationTarget);
@@ -609,16 +774,20 @@ export default defineComponent({
      * 复位
      */
     function reserves(){
+      gunshot.play()
       // for(let i = 1;i<=14;i++){
       //   scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${i}`)[0]._children.filter((item)=> item.name == `plane_${i}`)[0].isVisible = false;
       // }
       Data.showFalseBoo = false;
       Data.winOpenClose = false
-      Data.cameraDataFoo=false
+      Data.cameraDataFoo=false;
+      /**
+       * 相机回到初始位置
+       */
       camera.setTarget(new BABYLON.Vector3(0, 0, 0))
 
       const reservePostion = new BABYLON.Vector3(0, 200, 370);
-      const reserveRotation = new BABYLON.Vector3(0, Math.PI, 0);
+      // const reserveRotation = new BABYLON.Vector3(0, -Math.PI/4, 0);
       // 创建动画
       var animationPosition = new BABYLON.Animation(
           "cameraAnimationPosition",
@@ -629,38 +798,33 @@ export default defineComponent({
       );
       var keysPosition = [
         { frame: 0, value: camera.position.clone() },
-        { frame: 50, value: reservePostion }
+        { frame: 100, value: reservePostion }
       ];
       animationPosition.setKeys(keysPosition);
 
-      var animationRotation = new BABYLON.Animation(
-          "cameraAnimationRotation",
-          "rotation",
-          30,
-          BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
-          BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
-      );
-      var keysRotation = [
-        { frame: 0, value: camera.rotation.clone() },
-        { frame: 50, value: reserveRotation }
-      ];
-      animationRotation.setKeys(keysRotation);
+      // var animationRotation = new BABYLON.Animation(
+      //     "cameraAnimationRotation",
+      //     "rotation",
+      //     30,
+      //     BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+      //     BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+      // );
+      // var keysRotation = [
+      //   { frame: 0, value: camera.rotation.clone() },
+      //   { frame: 100, value: reserveRotation }
+      // ];
+      // animationRotation.setKeys(keysRotation);
 
       // 创建动画组
       camera.animations = [];
       var animationGroup = new BABYLON.AnimationGroup("cameraAnimationGroup");
       animationGroup.addTargetedAnimation(animationPosition, camera);
-      animationGroup.addTargetedAnimation(animationRotation, camera);
+      // animationGroup.addTargetedAnimation(animationRotation, camera);
 
       // 启动动画
       animationGroup.play();
 
-      var afterAnimationEnd = function () {
-        console.log("所有动画已经结束");
-        // 在这里添加您想要执行的代码
-      };
-
-      animationGroup.afterAnimationEnd = afterAnimationEnd;
+      animationGroup.onAnimationEndObservable.add(function(){
         for (let i = 0; i < scene.meshes.length; i++) {
           // if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
           scene.meshes[i].isVisible = true;
@@ -672,13 +836,97 @@ export default defineComponent({
         scene.getMeshByName("main_primitive0")._children[0].isVisible = false;
         scene.getMeshByName("窗户.001_primitive15")._children[0].isVisible = false;
         scene.getMeshByName("主屋_primitive0")._children[0].isVisible = false;
+      })
 
+      /**
+       * 仓房回到初始位置
+       */
+      if(Data.cfEndLocation){
+        var targetPosition0 = new BABYLON.Vector3(
+            Data.cfStartLocation[0].x,
+            Data.cfStartLocation[0].y,
+            Data.cfStartLocation[0].z,
+        );
+        var targetPosition1 = new BABYLON.Vector3(
+            Data.cfStartLocation[1].x,
+            Data.cfStartLocation[1].y,
+            Data.cfStartLocation[1].z,
+        );
+        var targetPosition2 = new BABYLON.Vector3(
+            Data.cfStartLocation[2].x,
+            Data.cfStartLocation[2].y,
+            Data.cfStartLocation[2].z,
+        );
+        var animationPosition0 = new BABYLON.Animation(
+            "resoverAnimationPositio",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var animationPosition1 = new BABYLON.Animation(
+            "resoverAnimationPositio",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var animationPosition2 = new BABYLON.Animation(
+            "resoverAnimationPositio",
+            "position",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var keysPosition0 = [
+          {frame: 0, value: Data.cfEndLocation[0]},
+          {frame: 100, value: targetPosition0}
+        ];
+        var keysPosition1 = [
+          {frame: 0, value: Data.cfEndLocation[1]},
+          {frame: 100, value: targetPosition1}
+        ];
+        var keysPosition2 = [
+          {frame: 0, value: Data.cfEndLocation[2]},
+          {frame: 100, value: targetPosition2}
+        ];
+        animationPosition0.setKeys(keysPosition0);
+        animationPosition1.setKeys(keysPosition1);
+        animationPosition2.setKeys(keysPosition2);
+        animationPosition0.setEasingFunction(new BABYLON.CubicEase());
+        animationPosition1.setEasingFunction(new BABYLON.CubicEase());
+        animationPosition2.setEasingFunction(new BABYLON.CubicEase());
+        Data.cfStaging[0].animations = [];  // 清空之前的动画
+        Data.cfStaging[0].animations.push(animationPosition0);
+        Data.cfStaging[1].animations = [];  // 清空之前的动画
+        Data.cfStaging[1].animations.push(animationPosition1);
+        Data.cfStaging[2].animations = [];  // 清空之前的动画
+        Data.cfStaging[2].animations.push(animationPosition2);
+        scene.beginAnimation(Data.cfStaging[0], 0, 100, false,1.0,function () {
+          Data.cfStaging[0].rotation.y = 0;
+          Data.cfRotation[0].stop();
+        });
+        scene.beginAnimation(Data.cfStaging[1], 0, 100, false,1.0,function () {
+          Data.cfStaging[1].rotation.y = 0;
+          Data.cfRotation[1].stop();
+        });
+        scene.beginAnimation(Data.cfStaging[2], 0, 100, false,1.0,function () {
+          Data.cfStaging[2].rotation.y = 0;
+          Data.cfRotation[2].stop();
+
+          Data.cfStartLocation = [];
+          Data.cfEndLocation = [];
+          // 启用自动旋转行为
+          camera.useAutoRotationBehavior = true;
+        });
+      }
     }
 
     /**
      * 显示隐藏标签
      */
     function showFalse(){
+      gunshot.play()
       Data.showFalseBoo = !Data.showFalseBoo
       if(Data.showFalseBoo) {
         for(let i = 1;i<=14;i++){
