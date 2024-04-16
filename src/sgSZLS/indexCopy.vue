@@ -230,20 +230,6 @@ export default defineComponent({
         element.remove();
       }
       handleSzlsDta();
-
-      /**
-       * 渲染数据
-       */
-      setTimeout(()=>{
-        Data.weaterData = szlsData.weaterData;
-        Data.houseData = szlsData.houseData;
-        Data.inventoryCapacity = szlsData.inventoryCapacity;
-        Data.inventoryAnalysis = szlsData.inventoryAnalysis;
-        Data.outStockInfo = szlsData.outStockInfo;
-        Data.inStockInfo = szlsData.inStockInfo;
-        Data.warnInfo = szlsData.warnInfo;
-        config.data = szlsData.locationInfoList;
-      },500)
     })
     /**
      * 数据
@@ -312,8 +298,6 @@ export default defineComponent({
     let isDragging = false;
     let gunshot = null;
     function init() {
-      BABYLON.DefaultLoadingScreen.prototype.displayLoadingUI = function () {
-      };
       // 创建场景承接元素
       let canvasFor:any = document.getElementById('canvasFor');
       let canvas = document.createElement('canvas');
@@ -324,23 +308,23 @@ export default defineComponent({
 
       // 创建场景
       scene = new BABYLON.Scene(engine);
-      // engine.hideLoadingUI()
 
 
       // 相机
       camera = new BABYLON.ArcRotateCamera("camera", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), scene);
-      camera.setPosition(new BABYLON.Vector3(0, 15, 35));
+      camera.setPosition(new BABYLON.Vector3(0, 200, 370));
       camera.attachControl(canvas, true);
       // 允许相机绕 X 轴的最大旋转角度（弧度）
       camera.upperBetaLimit = Math.PI/2 - 0.2;
       // 相机距离物体的最小距离
-      camera.lowerRadiusLimit = 15;
-      camera.upperRadiusLimit = 80;
+      camera.lowerRadiusLimit = 150;
+      camera.upperRadiusLimit = 700;
       // camera.panningInertia = 0.9; // 平移的惯性速度
       camera.panningSensibility = 290; // 控制平移灵敏度，可以根据需要调整
       // 相机旋转速度
       camera.angularSensibilityX = 9000; // 设置 X 轴的旋转敏感度
       camera.angularSensibilityY = 9000;
+      camera.speed = 1;
       // 启用自动旋转行为
       camera.useAutoRotationBehavior = true;
       // 设置自动旋转的方向（顺时针为正，逆时针为负）
@@ -351,7 +335,7 @@ export default defineComponent({
       light.intensity = 0.7
 
       // 创建天空盒
-      const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+      const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2000.0 }, scene);
       const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
       skyboxMaterial.backFaceCulling = false;
       skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("images/skybox", scene);
@@ -365,22 +349,22 @@ export default defineComponent({
        * 存储所有gui
        */
       let planes:any = [];
-      for(let i = 1;i<=12;i++){
+      for(let i = 1;i<=14;i++){
         // 创建gui载体
         var plane = BABYLON.Mesh.CreatePlane("plane_"+i,1,scene);
         plane.scaling = new BABYLON.Vector3(1, 2, 2);
-        plane.position.y = -2.5;
+        plane.position.y = -3;
         plane.rotation.x = Math.PI;
         // 创建GUI元素
         plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
         // 创建GUI元素
-        const advancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(plane,60,60);
+        const advancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(plane,80,60);
         const image = new GUI.Image('but', './images/pnging.jpg');
 
         // 设置精灵图中要显示的图像的位置和大小
-        image.width = "60px";
-        image.height = "30px";
+        image.width = "30px";
+        image.height = "60px";
 
         advancedTexture.addControl(image);
         planes.push(plane)
@@ -388,10 +372,10 @@ export default defineComponent({
 
       // 仓名显示
       let textPlanes = [];
-      for (let i = 1;i<=12;i++){
+      for (let i = 1;i<=14;i++){
         var textPlane = BABYLON.Mesh.CreatePlane("textPlane"+i,1,scene);
         textPlane.scaling = new BABYLON.Vector3(1, 2, 2);
-        textPlane.position.y = -2;
+        textPlane.position.y = -3;
         textPlane.position.x = 0.8;
         textPlane.rotation.x = Math.PI;
         // 创建GUI元素
@@ -404,38 +388,14 @@ export default defineComponent({
         text1.text = `仓${i}`;
         text1.color = "black";
         text1.fontSize = 20;
-        text1.fontWeight = '500';
         textAdvancedTexture.addControl(text1);
         textPlanes.push(textPlane)
       }
 
-      // 油罐名显示
-      let ygPlanes = [];
-      for (let i = 1;i<=2;i++){
-        var ygPlane = BABYLON.Mesh.CreatePlane("ygPlane"+i,1,scene);
-        ygPlane.scaling = new BABYLON.Vector3(1, 2, 2);
-        ygPlane.position.y = -2;
-        ygPlane.position.x = 0.8;
-        ygPlane.rotation.x = Math.PI;
-        // 创建GUI元素
-        ygPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-
-        // 创建GUI元素
-        const ygAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(ygPlane,80,60);
-
-        const text1 = new GUI.TextBlock();
-        text1.text = `油罐${i}`;
-        text1.color = "black";
-        text1.fontSize = 20;
-        text1.fontWeight = '500';
-        ygAdvancedTexture.addControl(text1);
-        ygPlanes.push(ygPlane)
-      }
-
 
       // 办公楼GUI
-      var louPlane = BABYLON.Mesh.CreatePlane("louPlane", 2.2,scene);
-      louPlane.position.y = -4;
+      var louPlane = BABYLON.Mesh.CreatePlane("louPlane", 2,scene);
+      louPlane.position.y = -2;
       louPlane.rotation.x = Math.PI;
       louPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
@@ -450,15 +410,16 @@ export default defineComponent({
       louAdvancedTexture.addControl(louButton);
 
       // 应急救灾楼GUI
-      var yjjzPlane = BABYLON.Mesh.CreatePlane("yjjzPlane", 2.2,scene);
-      yjjzPlane.position.y = -1.5;
+      var yjjzPlane = BABYLON.Mesh.CreatePlane("yjjzPlane", 10,scene);
+      yjjzPlane.position.y = -7;
+      yjjzPlane.position.z = -10;
       yjjzPlane.rotation.x = Math.PI;
       yjjzPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-      var yjjzAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(yjjzPlane);
+      var yjjzAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(yjjzPlane,1500);
 
-      var yjjzButton = GUI.Button.CreateSimpleButton("yjjzPlane", "综合楼");
-      yjjzButton.width = 1;
+      var yjjzButton = GUI.Button.CreateSimpleButton("yjjzPlane", "应急救灾物资楼");
+      yjjzButton.width = 1.6;
       yjjzButton.height = 0.4;
       yjjzButton.color = "black";
       yjjzButton.fontSize = 200;
@@ -467,93 +428,51 @@ export default defineComponent({
 
       // 一站式服务中心GUI
       var yzsfwPlane = BABYLON.Mesh.CreatePlane("yzsfwPlane", 2,scene);
-      yzsfwPlane.position.y = -1.5;
+      yzsfwPlane.position.y = -3;
       yzsfwPlane.rotation.x = Math.PI;
       yzsfwPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-      var yzsfwAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(yzsfwPlane);
+      var yzsfwAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(yzsfwPlane,2300,600);
 
-      var yzsfwButton = GUI.Button.CreateSimpleButton("yzsfwPlane", "地磅室");
-      yzsfwButton.width = 1;
-      yzsfwButton.height = 0.4;
+      var yzsfwButton = GUI.Button.CreateSimpleButton("yzsfwPlane", "一站式服务中心");
+      yzsfwButton.width = 0.9;
+      yzsfwButton.height = 0.7;
       yzsfwButton.color = "black";
       yzsfwButton.fontSize = 200;
       yzsfwButton.background = "transparent";
       yzsfwAdvancedTexture.addControl(yzsfwButton);
 
-      // 创建粮情点位plan
-      var planeSize = {width: 5, height: 5};
-      var lqPlane = BABYLON.MeshBuilder.CreatePlane("lqPlane", {width: planeSize.width, height: planeSize.height}, scene);
-      lqPlane.rotation.x = Math.PI/2;
-      lqPlane.position.y =5;
-      var advancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(lqPlane, 1000, 1000);
-      advancedTexture.background = "yellow"
-
-      var panelA = new GUI.StackPanel("panelA");
-      advancedTexture.addControl(panelA)
-
-      var blocks = []
-      var col = 6;
-      var row = 5;
-      for(var i =0;i<row;i++){
-        var panelB = new GUI.StackPanel("panelB");
-        //panelB.width = "100%"
-        panelB.height = 1000/row+"px"
-        panelA.addControl(panelB)
-        panelB.isVertical = false
-        for(var j = 0;j<col;j++){
-          let rectA = new GUI.Rectangle("rect"+i+" "+j);
-          rectA.width = 1000/col+"px"
-          rectA.background = '#'+Math.floor(Math.random()*16777215).toString(16);
-          panelB.addControl(rectA)
-          let textBlockA = new GUI.TextBlock("Textblock"+blocks.length);
-          textBlockA.textWrapping = true;
-          textBlockA.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          textBlockA.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          textBlockA.color = "white";
-          textBlockA.fontSize = "30px";
-          textBlockA.text = ""+blocks.length;
-          rectA.addControl(textBlockA);
-          blocks.push(textBlockA)
-        }
-      }
-
-
-      /**
-       * 加载模型
-       */
-      BABYLON.SceneLoader.Append("images/", "esaygrid.glb", scene,(sceneData)=>{
+      BABYLON.SceneLoader.Append("images/", "库区模型.glb", scene,(sceneData)=>{
         let canvasFor1:any = document.getElementById('canvasFor');
         bubble = document.createElement('div');
         bubble.setAttribute('id', 'bubble');
         canvasFor1.appendChild(bubble);
 
-        louPlane.parent = scene.getMeshByName("办公楼_primitive1");
-        yjjzPlane.parent = scene.getMeshByName("综合楼_primitive1");
-        yzsfwPlane.parent = scene.getMeshByName("地磅室_primitive1");
-        // console.log(scene.getMeshByName("办公楼").material)
-        var mat = new BABYLON.StandardMaterial("mat", scene);// 创建一个透明材质
-        mat.alpha = 0.5;// 设置材质透明度
-        scene.getMeshByName("办公楼_primitive0").material = mat;//把材质给网格
-        scene.getMeshByName("办公楼_primitive0").enableEdgesRendering();// 加载边线渲染
-        scene.getMeshByName("办公楼_primitive0").edgesWidth = 4.0; // 设置边线宽度
-        scene.getMeshByName("办公楼_primitive0").edgesColor =  new BABYLON.Color4(1, 0, 0, 1); // 设置边线颜色
-        //scene.getMeshByName("办公楼_primitive0").disableEdgesRendering();//取消边线渲染
+        /**
+         * 渲染数据
+         */
+        Data.weaterData = szlsData.weaterData;
+        Data.houseData = szlsData.houseData;
+        Data.inventoryCapacity = szlsData.inventoryCapacity;
+        Data.inventoryAnalysis = szlsData.inventoryAnalysis;
+        Data.outStockInfo = szlsData.outStockInfo;
+        Data.inStockInfo = szlsData.inStockInfo;
+        Data.warnInfo = szlsData.warnInfo;
+        config.data = szlsData.locationInfoList;
 
-        for (let i = 1; i <= 2 ; i++) {
-          ygPlanes[i-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `油罐${i}`)[0]
-        }
+        louPlane.parent = scene.getMeshByName("main_primitive0");
+        yjjzPlane.parent = scene.getMeshByName("窗户.001_primitive15");
+        yzsfwPlane.parent = scene.getMeshByName("主屋_primitive0");
+        scene.getMeshByName("main_primitive0")._children[0].isVisible = false;
+        scene.getMeshByName("窗户.001_primitive15")._children[0].isVisible = false;
+        scene.getMeshByName("主屋_primitive0")._children[0].isVisible = false;
+
         // 将摄像头GUI元素附加到仓房
-        for(let j = 1;j<=12;j++){
+        for(let j = 1;j<=14;j++){
           textPlanes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
           planes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
           scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]._children.filter((item)=> item.name == `plane_${j}`)[0].isVisible = false;
-          scene.getMeshByName(`仓体${j}_primitive0`).material = mat;
-          scene.getMeshByName(`仓体${j}_primitive0`).enableEdgesRendering();
-          scene.getMeshByName(`仓体${j}_primitive0`).edgesWidth = 4.0
-          scene.getMeshByName(`仓体${j}_primitive0`).edgesColor =  new BABYLON.Color4(1, 0, 0, 1);
         }
-
       },(error)=>{
       });
 
@@ -584,7 +503,6 @@ export default defineComponent({
           const evt = eventData.event;
           const pickResult = eventData.pickInfo;
           if(!isDragging){
-            console.log(pickResult.pickedMesh?.name)
               if (evt.button === 0) {
                 if (pickResult.pickedMesh?.name !== 'ground' && pickResult.pickedMesh?.name !== 'skyBox' && (pickResult.pickedMesh?.name.substring(0, 1) == '仓' || pickResult.pickedMesh?.name.substring(0, 5) == 'plane')) {
                   changePostion(pickResult)
@@ -600,17 +518,17 @@ export default defineComponent({
                         // openWin(evt,pickResult)'
                         Data.cameraDataFoo = false;
                         Data.winOpenClose = true;
-                        // for (let i = 0; i < scene.meshes.length; i++) {
-                        //   if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
-                        //     // console.log(scene.meshes[i].name.split('_')[0])
-                        //     scene.meshes[i].isVisible = false;
-                        //   }
-                        // }
+                        for (let i = 0; i < scene.meshes.length; i++) {
+                          if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
+                            // console.log(scene.meshes[i].name.split('_')[0])
+                            scene.meshes[i].isVisible = false;
+                          }
+                        }
 
                         /**
                          * 单个仓房旋转
                          */
-                        /*Data.cfRotation = [];
+                        Data.cfRotation = [];
                         const duration = 1800; // 动画持续时间（秒）
                         const speed = 0.2; // 每秒旋转速度（弧度）
 
@@ -639,7 +557,10 @@ export default defineComponent({
                         cfCollection0.animations.push(animations1);
                         cfCollection1.animations.push(animations1);
                         cfCollection2.animations.push(animations1);
-                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))*/
+                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))
+                        // Data.cfRotation[0] =  scene.beginAnimation(cfCollection0,0,duration*30,true);
+                        // Data.cfRotation[1] =  scene.beginAnimation(cfCollection1,0,duration*30,true);
+                        // Data.cfRotation[2] =  scene.beginAnimation(cfCollection2,0,duration*30,true);
 
                       });
                       setTimeout(()=>{
@@ -719,10 +640,9 @@ export default defineComponent({
         // );
         var targetPosition = new BABYLON.Vector3(
             pickResult.pickedMesh._absolutePosition.x,
-            pickResult.pickedMesh._absolutePosition.y + 1.5,
-            pickResult.pickedMesh._absolutePosition.z+2,
+            pickResult.pickedMesh._absolutePosition.y + 200,
+            pickResult.pickedMesh._absolutePosition.z + 200,
         );
-        console.log(targetPosition)
 
         var target = pickResult.pickedMesh._absolutePosition.clone();
 
@@ -759,7 +679,7 @@ export default defineComponent({
         animationTarget.setEasingFunction(new BABYLON.CubicEase());
 
 
-        /*// 仓房结束位置
+        // 仓房结束位置
         Data.cfStartLocation = [];
         Data.cfEndLocation = [];
         Data.cfStaging = [];
@@ -768,7 +688,7 @@ export default defineComponent({
         const cfCollection2 = scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+'2');
         // Data.cfStartLocation = pickResult.pickedMesh._position;// 暂存仓房初始位置
         for (let i = 0; i <= 2; i++) {
-          // console.log(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i)._position)
+          console.log(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i)._position)
           Data.cfStartLocation.push(scene.getMeshByName(pickResult.pickedMesh.name.substring(0,pickResult.pickedMesh.name.length-1)+i)._position)
         }
         var targetPosition0 = new BABYLON.Vector3(
@@ -840,7 +760,7 @@ export default defineComponent({
         cfCollection2.animations.push(animationPosition2);
         scene.beginAnimation(cfCollection0, 0, 50, false);
         scene.beginAnimation(cfCollection1, 0, 50, false);
-        scene.beginAnimation(cfCollection2, 0, 50, false);*/
+        scene.beginAnimation(cfCollection2, 0, 50, false);
 
         camera.animations = [];  // 清空之前的动画
         camera.animations.push(animationPosition);
@@ -866,7 +786,7 @@ export default defineComponent({
        */
       camera.setTarget(new BABYLON.Vector3(0, 0, 0))
 
-      const reservePostion = new BABYLON.Vector3(0, 15, 35);
+      const reservePostion = new BABYLON.Vector3(0, 200, 370);
       // const reserveRotation = new BABYLON.Vector3(0, -Math.PI/4, 0);
       // 创建动画
       var animationPosition = new BABYLON.Animation(
@@ -905,23 +825,23 @@ export default defineComponent({
       animationGroup.play();
 
       animationGroup.onAnimationEndObservable.add(function(){
-        // for (let i = 0; i < scene.meshes.length; i++) {
-        //   // if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
-        //   scene.meshes[i].isVisible = true;
-        //   // }
-        // }
-        for(let i = 1;i<=12;i++){
+        for (let i = 0; i < scene.meshes.length; i++) {
+          // if (scene.meshes[i].name !== 'skyBox' && scene.meshes[i].name.split('_')[0] !== pickResult.pickedMesh?.name.split('_')[0]){
+          scene.meshes[i].isVisible = true;
+          // }
+        }
+        for(let i = 1;i<=14;i++){
           scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${i}`)[0]._children.filter((item)=> item.name == `plane_${i}`)[0].isVisible = false;
         }
-        // scene.getMeshByName("办公楼_primitive1")._children[0].isVisible = false;
-        // scene.getMeshByName("综合楼_primitive1")._children[0].isVisible = false;
-        // scene.getMeshByName("地磅室_primitive1")._children[0].isVisible = false;
+        scene.getMeshByName("main_primitive0")._children[0].isVisible = false;
+        scene.getMeshByName("窗户.001_primitive15")._children[0].isVisible = false;
+        scene.getMeshByName("主屋_primitive0")._children[0].isVisible = false;
       })
 
       /**
        * 仓房回到初始位置
        */
-      /*if(Data.cfEndLocation){
+      if(Data.cfEndLocation){
         var targetPosition0 = new BABYLON.Vector3(
             Data.cfStartLocation[0].x,
             Data.cfStartLocation[0].y,
@@ -999,7 +919,7 @@ export default defineComponent({
           // 启用自动旋转行为
           camera.useAutoRotationBehavior = true;
         });
-      }*/
+      }
     }
 
     /**
@@ -1009,19 +929,19 @@ export default defineComponent({
       gunshot.play()
       Data.showFalseBoo = !Data.showFalseBoo
       if(Data.showFalseBoo) {
-        for(let i = 1;i<=12;i++){
+        for(let i = 1;i<=14;i++){
           scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${i}`)[0]._children.filter((item)=> item.name == `plane_${i}`)[0].isVisible = true;
         }
-        // scene.getMeshByName("办公楼_primitive1")._children[0].isVisible = true;
-        // scene.getMeshByName("综合楼_primitive1")._children[0].isVisible = true;
-        // scene.getMeshByName("地磅室_primitive1")._children[0].isVisible = true;
+        scene.getMeshByName("main_primitive0")._children[0].isVisible = true;
+        scene.getMeshByName("窗户.001_primitive15")._children[0].isVisible = true;
+        scene.getMeshByName("主屋_primitive0")._children[0].isVisible = true;
       }else{
-        for(let i = 1;i<=12;i++){
+        for(let i = 1;i<=14;i++){
           scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${i}`)[0]._children.filter((item)=> item.name == `plane_${i}`)[0].isVisible = false;
         }
-        // scene.getMeshByName("办公楼_primitive1")._children[0].isVisible = false;
-        // scene.getMeshByName("综合楼_primitive1")._children[0].isVisible = false;
-        // scene.getMeshByName("地磅室_primitive1")._children[0].isVisible = false;
+        scene.getMeshByName("main_primitive0")._children[0].isVisible = false;
+        scene.getMeshByName("窗户.001_primitive15")._children[0].isVisible = false;
+        scene.getMeshByName("主屋_primitive0")._children[0].isVisible = false;
       }
     }
 
