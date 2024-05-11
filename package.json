@@ -15,10 +15,12 @@
     "babylonjs-gui": "^6.36.1",
     "babylonjs-loaders": "^6.35.0",
     "dayjs": "^1.11.10",
+    "js-md5": "^0.8.3",
     "vue": "^3.3.8"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
+    "jsencrypt": "^3.3.2",
     "vite": "^5.0.0"
   }
 }

@@ -105,8 +105,8 @@
           </div>
         </div>
       </div>
-      <dv-button :bg="true" @click="reserves" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 53vw;" :color="'rgb(0,219,245)'">复位</dv-button>
-      <dv-button :bg="true" @click="showFalse" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 45vw;" :color="'rgb(0,219,245)'">{{Data.showFalseBoo == true?'标签显隐':'标签显示'}}</dv-button>
+<!--      <dv-button :bg="true" @click="reserves" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 53vw;" :color="'rgb(0,219,245)'">复位</dv-button>-->
+<!--      <dv-button :bg="true" @click="showFalse" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 45vw;" :color="'rgb(0,219,245)'">{{Data.showFalseBoo == true?'标签显隐':'标签显示'}}</dv-button>-->
     </dv-border-box11>
     <!-- 详情显示库存容量 -->
     <dv-border-box8 class="dv-border-box-8-xqkcrl" v-if="Data.winOpenClose" :dur="5" :backgroundColor="Data.backGroundColor">
@@ -210,7 +210,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted,reactive } from "vue";
+import {defineComponent, onBeforeMount, onMounted, reactive} from "vue";
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
@@ -218,18 +218,29 @@ import Mesh = BABYLON.Mesh;
 import 'dayjs/locale/zh-cn';
 import dayjs from "dayjs";
 import axios from "axios";
-import {axiosItem, handleItem, handleSzlsDta, headers, szlsData} from "./sgSLZS.data";
+import {axiosItem, handleItem, handleSzlsDta, headersData, szlsData} from "./sgSLZS.data";
+import {loginApi} from "./login.data";
 
 export default defineComponent({
   computed:{},
   setup(){
-    onMounted(()=>{
-      init();
+    onBeforeMount(()=>{
+
+    })
+    onMounted(async ()=>{
+      if(!sessionStorage.getItem('Token')){
+        await loginApi({
+          username: 'admin',
+          password: 'admin4321$#@!',
+          grantType: "PASSWORD",
+        })
+      }
+      await init();
       var element = document.getElementById('bubble');
       if (element) {
         element.remove();
       }
-      handleSzlsDta();
+      await handleSzlsDta();
 
       /**
        * 渲染数据
@@ -334,13 +345,13 @@ export default defineComponent({
       // 允许相机绕 X 轴的最大旋转角度（弧度）
       camera.upperBetaLimit = Math.PI/2 - 0.2;
       // 相机距离物体的最小距离
-      camera.lowerRadiusLimit = 15;
-      camera.upperRadiusLimit = 80;
+      camera.lowerRadiusLimit = 150;
+      camera.upperRadiusLimit = 300;
       // camera.panningInertia = 0.9; // 平移的惯性速度
       camera.panningSensibility = 290; // 控制平移灵敏度，可以根据需要调整
       // 相机旋转速度
-      camera.angularSensibilityX = 9000; // 设置 X 轴的旋转敏感度
-      camera.angularSensibilityY = 9000;
+      camera.angularSensibilityX = 7000; // 设置 X 轴的旋转敏感度
+      camera.angularSensibilityY = 7000;
       // 启用自动旋转行为
       camera.useAutoRotationBehavior = true;
       // 设置自动旋转的方向（顺时针为正，逆时针为负）
@@ -351,10 +362,10 @@ export default defineComponent({
       light.intensity = 0.7
 
       // 创建天空盒
-      const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+      const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1500.0 }, scene);
       const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
       skyboxMaterial.backFaceCulling = false;
-      skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("images/skybox", scene);
+      skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("images/sky", scene);
       // skyboxMaterial.reflectionTexture = new BABYLON.HDRCubeTexture("images/scythian4k.hdr", scene, 2000);
       skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
       skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
@@ -365,7 +376,7 @@ export default defineComponent({
        * 存储所有gui
        */
       let planes:any = [];
-      for(let i = 1;i<=12;i++){
+      for(let i = 1;i<=8;i++){
         // 创建gui载体
         var plane = BABYLON.Mesh.CreatePlane("plane_"+i,1,scene);
         plane.scaling = new BABYLON.Vector3(1, 2, 2);
@@ -388,7 +399,7 @@ export default defineComponent({
 
       // 仓名显示
       let textPlanes = [];
-      for (let i = 1;i<=12;i++){
+      for (let i = 1;i<=8;i++){
         var textPlane = BABYLON.Mesh.CreatePlane("textPlane"+i,1,scene);
         textPlane.scaling = new BABYLON.Vector3(1, 2, 2);
         textPlane.position.y = -2;
@@ -482,10 +493,10 @@ export default defineComponent({
       yzsfwAdvancedTexture.addControl(yzsfwButton);
 
       // 创建粮情点位plan
-      var planeSize = {width: 5, height: 5};
+      var planeSize = {width: 3, height: 3};
       var lqPlane = BABYLON.MeshBuilder.CreatePlane("lqPlane", {width: planeSize.width, height: planeSize.height}, scene);
       lqPlane.rotation.x = Math.PI/2;
-      lqPlane.position.y =5;
+      lqPlane.position.y =0;
       var advancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(lqPlane, 1000, 1000);
       advancedTexture.background = "yellow"
 
@@ -518,11 +529,27 @@ export default defineComponent({
         }
       }
 
+      // xml
+      // const xmlAdvancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+      var xmlplaneSize = {width: 5, height: 5};
+      var xmlPlane = BABYLON.MeshBuilder.CreatePlane("lqPlane", {width: xmlplaneSize.width, height: xmlplaneSize.height}, scene);
+      xmlPlane.rotation.x = Math.PI;
+      xmlPlane.position.y =5;
+      xmlPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+      var xmlAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(xmlPlane, 1000, 1000);
+      const xmlLoader = new GUI.XmlLoader();
+      xmlLoader.loadLayout("layouts/testgui.xml", xmlAdvancedTexture,function () {
+        console.log(xmlLoader.getNodeById("firstContainer"))
+      })
+      // const node = xmlLoader.getNodeById("firstContainer");
+      // xmlAdvancedTexture.addControl(node);
+      console.log(xmlLoader)
+
 
       /**
        * 加载模型
        */
-      BABYLON.SceneLoader.Append("images/", "esaygrid.glb", scene,(sceneData)=>{
+      BABYLON.SceneLoader.Append("images/", "szlsCY.glb", scene,(sceneData)=>{
         let canvasFor1:any = document.getElementById('canvasFor');
         bubble = document.createElement('div');
         bubble.setAttribute('id', 'bubble');
@@ -534,24 +561,25 @@ export default defineComponent({
         // console.log(scene.getMeshByName("办公楼").material)
         var mat = new BABYLON.StandardMaterial("mat", scene);// 创建一个透明材质
         mat.alpha = 0.5;// 设置材质透明度
-        scene.getMeshByName("办公楼_primitive0").material = mat;//把材质给网格
-        scene.getMeshByName("办公楼_primitive0").enableEdgesRendering();// 加载边线渲染
-        scene.getMeshByName("办公楼_primitive0").edgesWidth = 4.0; // 设置边线宽度
-        scene.getMeshByName("办公楼_primitive0").edgesColor =  new BABYLON.Color4(1, 0, 0, 1); // 设置边线颜色
+        // scene.getMeshByName("办公楼_primitive0").material = mat;//把材质给网格
+        // scene.getMeshByName("办公楼_primitive0").enableEdgesRendering();// 加载边线渲染
+        // scene.getMeshByName("办公楼_primitive0").edgesWidth = 4.0; // 设置边线宽度
+        // scene.getMeshByName("办公楼_primitive0").edgesColor =  new BABYLON.Color4(1, 0, 0, 1); // 设置边线颜色
         //scene.getMeshByName("办公楼_primitive0").disableEdgesRendering();//取消边线渲染
 
         for (let i = 1; i <= 2 ; i++) {
           ygPlanes[i-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `油罐${i}`)[0]
         }
+        lqPlane.parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${1}`)[0]
         // 将摄像头GUI元素附加到仓房
         for(let j = 1;j<=12;j++){
           textPlanes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
           planes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
           scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]._children.filter((item)=> item.name == `plane_${j}`)[0].isVisible = false;
-          scene.getMeshByName(`仓体${j}_primitive0`).material = mat;
-          scene.getMeshByName(`仓体${j}_primitive0`).enableEdgesRendering();
-          scene.getMeshByName(`仓体${j}_primitive0`).edgesWidth = 4.0
-          scene.getMeshByName(`仓体${j}_primitive0`).edgesColor =  new BABYLON.Color4(1, 0, 0, 1);
+          scene.getMeshByName(`仓${j}_primitive1`).material = mat;
+          // scene.getMeshByName(`仓体${j}_primitive0`).enableEdgesRendering();
+          // scene.getMeshByName(`仓体${j}_primitive0`).edgesWidth = 4.0
+          // scene.getMeshByName(`仓体${j}_primitive0`).edgesColor =  new BABYLON.Color4(1, 0, 0, 1);
         }
 
       },(error)=>{
@@ -587,7 +615,7 @@ export default defineComponent({
             console.log(pickResult.pickedMesh?.name)
               if (evt.button === 0) {
                 if (pickResult.pickedMesh?.name !== 'ground' && pickResult.pickedMesh?.name !== 'skyBox' && (pickResult.pickedMesh?.name.substring(0, 1) == '仓' || pickResult.pickedMesh?.name.substring(0, 5) == 'plane')) {
-                  changePostion(pickResult)
+                  /*changePostion(pickResult)
                   let cangNumber = null;
                   if(pickResult.pickedMesh?.name.substring(0, 1) == '仓'){
                     // 暂时存储仓房编号
@@ -607,10 +635,10 @@ export default defineComponent({
                         //   }
                         // }
 
-                        /**
+                        /!**
                          * 单个仓房旋转
-                         */
-                        /*Data.cfRotation = [];
+                         *!/
+                        /!*Data.cfRotation = [];
                         const duration = 1800; // 动画持续时间（秒）
                         const speed = 0.2; // 每秒旋转速度（弧度）
 
@@ -639,7 +667,7 @@ export default defineComponent({
                         cfCollection0.animations.push(animations1);
                         cfCollection1.animations.push(animations1);
                         cfCollection2.animations.push(animations1);
-                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))*/
+                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))*!/
 
                       });
                       setTimeout(()=>{
@@ -654,7 +682,7 @@ export default defineComponent({
                     // 暂时存储仓房编号
                     cangNumber = pickResult.pickedMesh?.name.split('_')[1]<10? '0'+pickResult.pickedMesh?.name.split('_')[1] : pickResult.pickedMesh?.name.split('_')[1];
                     if(pickResult.pickedMesh?.name == `plane_${pickResult.pickedMesh?.name.split('_')[1]}`){
-                      axios.get(`http://43.249.192.161:15001/Transfers/digitalTwinsCamera/getCreameData?cameraPoint=3200000${cangNumber}`,{headers:headers}).then((res)=>{
+                      axios.get(`http://43.249.192.161:15001/Transfers/digitalTwinsCamera/getCreameData?cameraPoint=3200000${cangNumber}`,{headers:headersData}).then((res)=>{
                         Data.cameraData = res.data.data[0]
                       })
                       scene.beginAnimation(camera, 0, 50, false,1.0,function(){
@@ -664,11 +692,11 @@ export default defineComponent({
                         Data.cameraDataFoo = true;
                       });
                     }
-                  }
+                  }*/
 
                 }else {
                   //  动画停止
-                  scene.stopAnimation(camera)
+                  // scene.stopAnimation(camera)
                   // 销毁之前的DOM元素
                   var previousBubble = document.getElementById('bubble');
                   if (previousBubble) {
@@ -684,10 +712,10 @@ export default defineComponent({
       /**
        * 加载声音
        */
-      gunshot = new BABYLON.Sound("火花", "/public/sounds/火花.wav", scene);
+      gunshot = new BABYLON.Sound("hh", "/public/sounds/hh.wav", scene);
 
       // 背景音乐
-      const bgmusic = new BABYLON.Sound("火花", "/public/sounds/背景音乐.wav", scene, null, {
+      const bgmusic = new BABYLON.Sound("hh", "/public/sounds/bjyy.wav", scene, null, {
         loop: true,
         autoplay: true,
         volume:1,

@@ -605,10 +605,10 @@ export default defineComponent({
       /**
        * 加载声音
        */
-      gunshot = new BABYLON.Sound("火花", "/public/sounds/火花.wav", scene);
+      gunshot = new BABYLON.Sound("火花", "/public/sounds/hh.wav", scene);
 
       // 背景音乐
-      const bgmusic = new BABYLON.Sound("火花", "/public/sounds/背景音乐.wav", scene, null, {
+      const bgmusic = new BABYLON.Sound("火花", "/public/sounds/bjyy.wav", scene, null, {
         loop: true,
         autoplay: true,
         volume:1,
