@@ -218,7 +218,7 @@ import Mesh = BABYLON.Mesh;
 import 'dayjs/locale/zh-cn';
 import dayjs from "dayjs";
 import axios from "axios";
-import {axiosItem, handleItem, handleSzlsDta, headers, szlsData} from "./sgSLZS.data";
+import {axiosItem, handleItem, handleSzlsDta, headers, szlsData} from "./data/sgSLZS.data";
 
 export default defineComponent({
   computed:{},
@@ -1006,6 +1006,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-@import url('./sgSZLS.css');
+@import url('style/sgSZLS.css');
 
 </style>

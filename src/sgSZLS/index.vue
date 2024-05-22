@@ -105,8 +105,17 @@
           </div>
         </div>
       </div>
-<!--      <dv-button :bg="true" @click="reserves" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 53vw;" :color="'rgb(0,219,245)'">复位</dv-button>-->
-<!--      <dv-button :bg="true" @click="showFalse" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 45vw;" :color="'rgb(0,219,245)'">{{Data.showFalseBoo == true?'标签显隐':'标签显示'}}</dv-button>-->
+      <dv-button :bg="true" v-show="!Data.loginType" @click="reserves" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 53vw;" :color="'rgb(0,219,245)'">复位</dv-button>
+      <dv-button :bg="true" v-show="!Data.loginType" @click="showFalse" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 45vw;" :color="'rgb(0,219,245)'">{{Data.showFalseBoo == true?'标签显隐':'标签显示'}}</dv-button>
+      <input type="text" v-model="Data.userName"
+             placeholder="用户名"
+             v-show="Data.loginType"
+             style="position: absolute;bottom: 3vh;right: 50vw;pointer-events: auto;">
+      <input type="text" v-model="Data.userPassWord"
+             placeholder="密码"
+             v-show="Data.loginType"
+             style="position: absolute;bottom: 3vh;right: 37vw;pointer-events: auto;">
+      <dv-button :bg="true" @click="loginUserName" style="pointer-events: auto;position: absolute;bottom: 3vh;right: 30vw;" :color="'rgb(0,219,245)'">{{Data.loginType == false? '切换登录' : '登录'}}</dv-button>
     </dv-border-box11>
     <!-- 详情显示库存容量 -->
     <dv-border-box8 class="dv-border-box-8-xqkcrl" v-if="Data.winOpenClose" :dur="5" :backgroundColor="Data.backGroundColor">
@@ -141,7 +150,6 @@
         <div>累计出库量：{{ Data.outStockInfoView[Data.crkqkckItemNumber]?.totalOutStockCount }} 出库车次：{{ Data.outStockInfoView[Data.crkqkckItemNumber]?.outStockTimes }}</div>
       </div>
       <div style="margin-top: 7vh;line-height: 4vh;">
-
         <div class="dv-border-box-1-xqcrkqk-title">
           <dv-button :bg="true" @click="Data.crkqkrkItemNumber-- <= 0 ? Data.crkqkrkItemNumber = 0: Data.crkqkrkItemNumber" border="Border2" :color="'rgb(0,219,245)'" style="pointer-events: auto;cursor: pointer;">《</dv-button>
           <div>入库</div>
@@ -189,11 +197,12 @@
           <div style="color: white;">粮情信息</div>
           <div style="cursor: pointer;user-select: none;" @click="closewin">X</div>
         </div>
-        <div style="line-height: 10vh;color: white;">
-          <div>最高粮温：{{ Data.temperatureAndHumidityView?.max }}</div>
-          <div>最低粮温：{{ Data.temperatureAndHumidityView?.min }}</div>
-          <div>平均粮温：{{ Data.temperatureAndHumidityView?.avg }}</div>
-        </div>
+<!--        <div style="line-height: 10vh;color: white;">-->
+<!--          <div>最高粮温：{{ Data.temperatureAndHumidityView?.max }}</div>-->
+<!--          <div>最低粮温：{{ Data.temperatureAndHumidityView?.min }}</div>-->
+<!--          <div>平均粮温：{{ Data.temperatureAndHumidityView?.avg }}</div>-->
+<!--        </div>-->
+        <threeDPointMap ref="threeDPointMap" style="width: 100%; height:40vh" />
       </div>
       <!-- 摄像头 -->
       <div v-else>
@@ -210,7 +219,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, onBeforeMount, onMounted, reactive} from "vue";
+import {defineComponent, onBeforeMount, onMounted, reactive, ref} from "vue";
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import * as GUI from 'babylonjs-gui';
@@ -218,29 +227,32 @@ import Mesh = BABYLON.Mesh;
 import 'dayjs/locale/zh-cn';
 import dayjs from "dayjs";
 import axios from "axios";
-import {axiosItem, handleItem, handleSzlsDta, headersData, szlsData} from "./sgSLZS.data";
-import {loginApi} from "./login.data";
+import {axiosItem, handleItem, handleSzlsDta, headersData, szlsData} from "./data/sgSLZS.data";
+import {loginApi} from "./data/login.data";
+import threeDPointMap from "./model/threeDPointMap.vue";
 
 export default defineComponent({
   computed:{},
+  components:{
+    threeDPointMap
+  },
   setup(){
-    onBeforeMount(()=>{
-
-    })
+    const threeDPointMap = ref()
     onMounted(async ()=>{
-      if(!sessionStorage.getItem('Token')){
+      // if(!sessionStorage.getItem('Token')){
         await loginApi({
-          username: 'admin',
-          password: 'admin4321$#@!',
-          grantType: "PASSWORD",
+          username: 'jiapeng001',
+          password: '123456',
+          grantType:'PASSWORD',
         })
-      }
+      // }
       await init();
       var element = document.getElementById('bubble');
       if (element) {
         element.remove();
       }
       await handleSzlsDta();
+      await threeDPointMap.value.initeCharts('9137078379734655010010020','20号仓');
 
       /**
        * 渲染数据
@@ -290,7 +302,39 @@ export default defineComponent({
       cfStaging:<any>[],
       // 记录旋转动画
       cfRotation:<any>[],
+      userName:'',
+      userPassWord:'',
+      loginType:false,
     });
+
+    /**
+     * 登录
+     */
+    async function loginUserName() {
+      Data.loginType = !Data.loginType;
+      if(!Data.loginType){
+        if(Data.userName && Data.userPassWord){
+          await loginApi({
+            username: Data.userName,
+            password: Data.userPassWord,
+            grantType:'PASSWORD',
+          })
+          await handleSzlsDta();
+          setTimeout(()=>{
+            Data.weaterData = szlsData.weaterData;
+            Data.houseData = szlsData.houseData;
+            Data.inventoryCapacity = szlsData.inventoryCapacity;
+            Data.inventoryAnalysis = szlsData.inventoryAnalysis;
+            Data.outStockInfo = szlsData.outStockInfo;
+            Data.inStockInfo = szlsData.inStockInfo;
+            Data.warnInfo = szlsData.warnInfo;
+            config.data = szlsData.locationInfoList;
+          },500)
+        }else {
+          alert('请输入用户名密码')
+        }
+      }
+    }
 
     /**
      * 仓房列表数据
@@ -353,7 +397,7 @@ export default defineComponent({
       camera.angularSensibilityX = 7000; // 设置 X 轴的旋转敏感度
       camera.angularSensibilityY = 7000;
       // 启用自动旋转行为
-      camera.useAutoRotationBehavior = true;
+      // camera.useAutoRotationBehavior = true;
       // 设置自动旋转的方向（顺时针为正，逆时针为负）
       // camera.autoRotationBehavior.idleRotationOffset = Math.PI / 2; // 设置逆时针旋转
 
@@ -378,9 +422,9 @@ export default defineComponent({
       let planes:any = [];
       for(let i = 1;i<=8;i++){
         // 创建gui载体
-        var plane = BABYLON.Mesh.CreatePlane("plane_"+i,1,scene);
+        var plane = BABYLON.Mesh.CreatePlane("plane_"+i,10,scene);
         plane.scaling = new BABYLON.Vector3(1, 2, 2);
-        plane.position.y = -2.5;
+        plane.position.y = -6;
         plane.rotation.x = Math.PI;
         // 创建GUI元素
         plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
@@ -400,21 +444,21 @@ export default defineComponent({
       // 仓名显示
       let textPlanes = [];
       for (let i = 1;i<=8;i++){
-        var textPlane = BABYLON.Mesh.CreatePlane("textPlane"+i,1,scene);
-        textPlane.scaling = new BABYLON.Vector3(1, 2, 2);
-        textPlane.position.y = -2;
-        textPlane.position.x = 0.8;
+        var textPlane = BABYLON.Mesh.CreatePlane("textPlane"+i,10,scene);
+        textPlane.scaling = new BABYLON.Vector3(1, 1, 1);
+        textPlane.position.y = -6;
+        textPlane.position.x = 10;
         textPlane.rotation.x = Math.PI;
         // 创建GUI元素
         textPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
         // 创建GUI元素
-        const textAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(textPlane,80,60);
+        const textAdvancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(textPlane,80,50);
 
         const text1 = new GUI.TextBlock();
         text1.text = `仓${i}`;
         text1.color = "black";
-        text1.fontSize = 20;
+        text1.fontSize = 50;
         text1.fontWeight = '500';
         textAdvancedTexture.addControl(text1);
         textPlanes.push(textPlane)
@@ -426,7 +470,7 @@ export default defineComponent({
         var ygPlane = BABYLON.Mesh.CreatePlane("ygPlane"+i,1,scene);
         ygPlane.scaling = new BABYLON.Vector3(1, 2, 2);
         ygPlane.position.y = -2;
-        ygPlane.position.x = 0.8;
+        ygPlane.position.x = 2;
         ygPlane.rotation.x = Math.PI;
         // 创建GUI元素
         ygPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
@@ -543,7 +587,6 @@ export default defineComponent({
       })
       // const node = xmlLoader.getNodeById("firstContainer");
       // xmlAdvancedTexture.addControl(node);
-      console.log(xmlLoader)
 
 
       /**
@@ -555,9 +598,9 @@ export default defineComponent({
         bubble.setAttribute('id', 'bubble');
         canvasFor1.appendChild(bubble);
 
-        louPlane.parent = scene.getMeshByName("办公楼_primitive1");
-        yjjzPlane.parent = scene.getMeshByName("综合楼_primitive1");
-        yzsfwPlane.parent = scene.getMeshByName("地磅室_primitive1");
+        // louPlane.parent = scene.getMeshByName("办公楼_primitive1");
+        // yjjzPlane.parent = scene.getMeshByName("综合楼_primitive1");
+        // yzsfwPlane.parent = scene.getMeshByName("地磅室_primitive1");
         // console.log(scene.getMeshByName("办公楼").material)
         var mat = new BABYLON.StandardMaterial("mat", scene);// 创建一个透明材质
         mat.alpha = 0.5;// 设置材质透明度
@@ -572,11 +615,12 @@ export default defineComponent({
         }
         lqPlane.parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${1}`)[0]
         // 将摄像头GUI元素附加到仓房
-        for(let j = 1;j<=12;j++){
-          textPlanes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
-          planes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]
-          scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}`)[0]._children.filter((item)=> item.name == `plane_${j}`)[0].isVisible = false;
-          scene.getMeshByName(`仓${j}_primitive1`).material = mat;
+        console.log(scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${7}顶`)[0])
+        for(let j = 1;j<=9;j++){
+          textPlanes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}顶`)[0]
+          planes[j-1].parent = scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}顶`)[0]
+          // scene.getMeshByName("__root__")._children.filter((item)=> item.name == `仓${j}顶`)[0]._children.filter((item)=> item.name == `plane_${j}`)[0].isVisible = false;
+          // scene.getMeshByName(`仓${j}_primitive1`).material = mat;
           // scene.getMeshByName(`仓体${j}_primitive0`).enableEdgesRendering();
           // scene.getMeshByName(`仓体${j}_primitive0`).edgesWidth = 4.0
           // scene.getMeshByName(`仓体${j}_primitive0`).edgesColor =  new BABYLON.Color4(1, 0, 0, 1);
@@ -594,7 +638,7 @@ export default defineComponent({
       scene.onPointerObservable.add((eventData)=>{
         /*
           POINTERDOWN：当鼠标按下时触发。
-          POINTERUP：当鼠标释放时触发。
+          POINTERUP：当鼠标释放时触发。ww
           POINTERMOVE：当鼠标移动时触发。
           POINTERWHEEL：当鼠标滚轮滚动时触发。
           POINTERPICK：当指针与场景中的物体发生交互（拾取）时触发。
@@ -615,7 +659,7 @@ export default defineComponent({
             console.log(pickResult.pickedMesh?.name)
               if (evt.button === 0) {
                 if (pickResult.pickedMesh?.name !== 'ground' && pickResult.pickedMesh?.name !== 'skyBox' && (pickResult.pickedMesh?.name.substring(0, 1) == '仓' || pickResult.pickedMesh?.name.substring(0, 5) == 'plane')) {
-                  /*changePostion(pickResult)
+                  changePostion(pickResult)
                   let cangNumber = null;
                   if(pickResult.pickedMesh?.name.substring(0, 1) == '仓'){
                     // 暂时存储仓房编号
@@ -635,10 +679,10 @@ export default defineComponent({
                         //   }
                         // }
 
-                        /!**
+                        /**
                          * 单个仓房旋转
-                         *!/
-                        /!*Data.cfRotation = [];
+                         */
+                        /*Data.cfRotation = [];
                         const duration = 1800; // 动画持续时间（秒）
                         const speed = 0.2; // 每秒旋转速度（弧度）
 
@@ -667,7 +711,7 @@ export default defineComponent({
                         cfCollection0.animations.push(animations1);
                         cfCollection1.animations.push(animations1);
                         cfCollection2.animations.push(animations1);
-                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))*!/
+                        Data.cfRotation.push(scene.beginAnimation(cfCollection0,0,duration*30,true),scene.beginAnimation(cfCollection1,0,duration*30,true),scene.beginAnimation(cfCollection2,0,duration*30,true))*/
 
                       });
                       setTimeout(()=>{
@@ -682,9 +726,9 @@ export default defineComponent({
                     // 暂时存储仓房编号
                     cangNumber = pickResult.pickedMesh?.name.split('_')[1]<10? '0'+pickResult.pickedMesh?.name.split('_')[1] : pickResult.pickedMesh?.name.split('_')[1];
                     if(pickResult.pickedMesh?.name == `plane_${pickResult.pickedMesh?.name.split('_')[1]}`){
-                      axios.get(`http://43.249.192.161:15001/Transfers/digitalTwinsCamera/getCreameData?cameraPoint=3200000${cangNumber}`,{headers:headersData}).then((res)=>{
-                        Data.cameraData = res.data.data[0]
-                      })
+                      // axios.get(`http://43.249.192.161:15001/Transfers/digitalTwinsCamera/getCreameData?cameraPoint=3200000${cangNumber}`,{headers:headersData}).then((res)=>{
+                      //   Data.cameraData = res.data.data[0]
+                      // })
                       scene.beginAnimation(camera, 0, 50, false,1.0,function(){
 
                         // 动画结束后执行
@@ -692,7 +736,7 @@ export default defineComponent({
                         Data.cameraDataFoo = true;
                       });
                     }
-                  }*/
+                  }
 
                 }else {
                   //  动画停止
@@ -750,7 +794,7 @@ export default defineComponent({
             pickResult.pickedMesh._absolutePosition.y + 1.5,
             pickResult.pickedMesh._absolutePosition.z+2,
         );
-        console.log(targetPosition)
+        // console.log(targetPosition)
 
         var target = pickResult.pickedMesh._absolutePosition.clone();
 
@@ -1100,7 +1144,9 @@ export default defineComponent({
       reserves()
     }
     return{
+      threeDPointMap,
       Data,
+      loginUserName,
       config,
       init,
       reserves,
@@ -1114,6 +1160,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-@import url('./sgSZLS.css');
+@import url('style/sgSZLS.css');
 
 </style>
